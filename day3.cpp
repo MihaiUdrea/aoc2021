@@ -34,10 +34,9 @@ struct Solve
 
   Solve(const string & inStr)
   {
-    data     = Init(inStr);
-    auto rgn = inStr | views::tokenize(regex("\n"), -1) | views::transform(to_string_view()) |
-               views::take(1);
-    power = rgn.front().size();
+    data = Init(inStr);
+
+    power = (inStr | views::tokenize(regex("\n"), -1)).front().length();
   };
 
   static bool bitIsSet(int p, bool aDiffVal, MyInt i) { return i[p] != aDiffVal; }
