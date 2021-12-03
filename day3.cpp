@@ -14,6 +14,8 @@
 #define TODAY
 #endif  // THISDAY
 
+using namespace std::placeholders;  // for _1, _2, _3...
+
 using namespace ranges;
 
 namespace
@@ -37,20 +39,14 @@ struct Solve
 
   Solve(const string & inStr) { data = Init(inStr); };
 
-  // static bool HasBitOn
+  static bool bitIsSet(int p, bool aDiffVal, MyInt i) { return i[p] != aDiffVal; }
 
   string Do()
   {
-    auto powers = views::iota(0, 12);
-
-    auto gama = accumulate(powers, MyInt(0),
+    auto gama = accumulate(views::iota(0, 12), MyInt(0),
                            [&](auto gama, auto p)
                            {
-                             auto ones = count_if(data,
-                                                  [p](auto i)
-                                                  {
-                                                    return (bool)i[p];
-                                                  });
+                             auto ones = count_if(data, std::bind_front(bitIsSet, p, 0));
 
                              return gama.set(p, ones > (double)data.size() / 2);
                            });
@@ -58,87 +54,32 @@ struct Solve
     return to_string(gama.to_ullong() * (~gama).to_ulong());
   }
 
-  string Do2(int range = 12)
+  string Do2()
   {
-    auto half = (double)data.size() / 2 + 0.5;
+    auto calc = [&](auto op)
+    {
+      return accumulate(views::iota(0, 12) | views::reverse, data,
+                        [op](auto data, auto p)
+                        {
+                          if (data.size() == 1)
+                            return data;
 
-    auto powers = views::iota(0, range) | views::reverse;
+                          auto ones     = count_if(data, std::bind_front(bitIsSet, p, 0));
+                          bool keepOnes = op(ones, (float)data.size() / 2);
 
-    auto backup = data;
+                          return data | move |
+                                 actions::remove_if(std::bind_front(bitIsSet, p, keepOnes));
+                        });
+    };
+    auto oxygen = calc(greater_equal());
+    auto co2    = calc(less());
 
-    auto oxygen = accumulate(powers, data,
-                             [](auto d, auto p)
-                             {
-                               auto ones = count_if(d,
-                                                    [p](auto i)
-                                                    {
-                                                      return (bool)i[p];
-                                                    });
-
-                               bool bit = ones >= (float)d.size() / 2;
-
-                               return d | move |
-                                      actions::remove_if(
-                                        [p, bit](auto i)
-                                        {
-                                          return (bool)i[p] != bit;
-                                        });
-                             });
-
-    auto co2 = accumulate(powers, 0,
-                          [&](auto gama, auto p)
-                          {
-                            auto & x = data;
-
-                            if (x.size() == 1)
-                              return 1;
-
-                            auto ones = count_if(data,
-                                                 [p](auto i)
-                                                 {
-                                                   return (bool)i[p];
-                                                 });
-
-                            bool bit = ones < (float)data.size() / 2;
-
-                            // remove others
-                            x.erase(remove_if(x,
-                                              [p, bit](auto i)
-                                              {
-                                                return (bool)i[p] != bit;
-                                              }),
-                                    x.end());
-
-                            return gama | (bit ? 1 : 0) << p;
-                          });
-
-    co2 = data.front().to_ulong();
-
-    return to_string(oxygen.front().to_ulong() * co2);
+    return to_string(oxygen.front().to_ulong() * co2.front().to_ulong());
   }
 };
 }  // namespace
 
 #include "catch.hpp"
-
-TEST_CASE(TODAY "Sample 1", "[x.]")
-{
-  REQUIRE(Solve(1 + R"(
-00100
-11110
-10110
-10111
-10101
-01111
-00111
-11100
-10000
-11001
-00010
-01010
-)")
-            .Do2(5) == "230");
-}
 
 TEST_CASE(TODAY "Part One", "[x.]")
 {
