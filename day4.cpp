@@ -154,33 +154,28 @@ struct Solve
       {
         for (auto & line : ticket)
         {
-          for (auto & nr : line)
+          for (auto [colIdx, nr] : line | views::enumerate)
           {
             if (nr.first == nrDrawn)
               nr.second = true;
 
-            auto totalOnLine = count_if(line,
-                                        [](auto i)
-                                        {
-                                          return i.second;
-                                        });
+            auto totalOnLine = count(line | views::values, true);
             if (totalOnLine == line.size())
             {
               // winner
-              auto ticketVal = accumulate(ticket | views::join, 0,
-                                          [](auto v, auto nr)
-                                          {
-                                            if (nr.second)
-                                              return v;
-                                            else
-                                              return v + nr.first;
-                                            // return v + (? 0 : nr.first);
-                                          });
+              auto ticketVal = accumulate(ticket | views::join |
+                                            views::filter(
+                                              [](auto nr)
+                                              {
+                                                return nr.second;
+                                              }) |
+                                            views::keys,
+                                          0);
               return to_string(ticketVal * nrDrawn);
             }
 
             // split in columns
-            auto rgn = ticket | transpose();
+            auto rgn = ticket | transpose() | views::drop(colIdx) | views::take(1);
             for (auto col : rgn)
             {
               auto totalOnLine = count_if(col,
