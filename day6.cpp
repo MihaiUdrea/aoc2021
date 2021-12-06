@@ -22,6 +22,33 @@ auto Init(const string & input)
 {
   auto v = input | views::tokenize(regex(","), -1) | views::transform(sub_match_to_int());
 
+  return accumulate(v, map<int, ULONGLONG>{},
+                    [](auto map, auto i)
+                    {
+                      map[i]++;
+                      return map | move;
+                    });
+
+  auto vv = v | to<vector> | actions::sort;
+
+  auto ww = vv |
+            views::chunk_by(
+              [](auto a, auto b)
+              {
+                return a == b;
+              }) |
+            to<vector>;
+
+  auto r_count = ww | views::transform(
+                        [](auto && r)
+                        {
+                          return distance(r);
+                        });
+
+  auto r_unique = vv | views::unique;
+
+  return views::zip(r_unique, r_count) | to<map<int, ULONGLONG>>;
+
   return views::iota(0, 7) |
          views::transform(
            [&v](auto i)
@@ -38,23 +65,24 @@ struct Solve
 
   string Do(int count = 80)
   {
-    ULONGLONG prevCount     = 0;
-    ULONGLONG prevPrevCount = 0;
-    for (auto day : views::iota(0, count))
-    {
-      auto dayMod = day % 7;
+    auto prevs = accumulate(views::ints(0, count), pair<ULONGLONG, ULONGLONG>{},
+                            [&](auto prevs, auto day)
+                            {
+                              auto dayMod = day % 7;
 
-      auto hatching = data[dayMod];
+                              auto hatching = data[dayMod];
 
-      data[dayMod] += prevPrevCount;
+                              data[dayMod] += prevs.first;
 
-      prevPrevCount = prevCount;
-      prevCount     = hatching;
-    }
+                              prevs.first  = prevs.second;
+                              prevs.second = hatching;
+
+                              return prevs;
+                            });
 
     auto ct = accumulate(data | views::values, (ULONGLONG)0);
 
-    return to_string(ct + prevPrevCount + prevCount);
+    return to_string(ct + prevs.first + prevs.second);
   }
 
   string Do2() { return Do(256); }
