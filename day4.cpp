@@ -4,8 +4,8 @@
 
 //#define THISDAY "?"
 
-#define FIRST_STAR "71708"
-//#define SECOND_STAR ""
+#define FIRST_STAR  "71708"
+#define SECOND_STAR "34726"
 
 #ifdef THISDAY
 #define TODAY DAY THISDAY "/"
