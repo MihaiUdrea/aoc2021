@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "Utils.h"
 
-//#define THISDAY "?"
+#define THISDAY "6"
 
 #define FIRST_STAR  "363101"
 #define SECOND_STAR "1644286074024"
@@ -65,11 +65,10 @@ struct Solve
 
   string Do(int count = 80)
   {
-    auto prevs = accumulate(views::ints(0, count), pair<ULONGLONG, ULONGLONG>{},
-                            [&](auto prevs, auto day)
+    auto prevs = accumulate(views::ints(0, 7) | views::cycle | views::take(count),
+                            pair<ULONGLONG, ULONGLONG>{},
+                            [&](auto prevs, auto dayMod)
                             {
-                              auto dayMod = day % 7;
-
                               auto hatching = data[dayMod];
 
                               data[dayMod] += prevs.first;
