@@ -1,4 +1,4 @@
-// Aoc - 2021 Day ?: ??????? ---
+// Aoc - 2021 Day 5: ??????? ---
 #include "stdafx.h"
 #include "Utils.h"
 
@@ -99,39 +99,18 @@ struct Solve
                     auto          minmaxX = std::minmax(segment.first.x, segment.second.x);
                     auto          minmaxY = std::minmax(segment.first.y, segment.second.y);
 
-                    if (minmaxY.first == minmaxY.second)
-                    {
-                      r_com = views::zip(views::closed_iota(minmaxX.first, minmaxX.second),
-                                         views::repeat(minmaxY.first)) |
-                              views::transform(
-                                [](auto a)
-                                {
-                                  return Point(get<0>(a), get<1>(a));
-                                }) |
-                              to<vector>;
-                    }
-                    else if (minmaxX.first == minmaxX.second)
-                    {
-                      r_com = views::zip(views::repeat(minmaxX.first),
-                                         views::closed_iota(minmaxY.first, minmaxY.second)) |
-                              views::transform(
-                                [](auto a)
-                                {
-                                  return Point(get<0>(a), get<1>(a));
-                                }) |
-                              to<vector>;
-                    }
-                    else
                     {
                       auto  countx     = minmaxX.second - minmaxX.first;
                       auto  county     = minmaxY.second - minmaxY.first;
                       Point startPoint = segment.first;
                       Point endPoint   = segment.second;
 
-                      auto seg = endPoint - startPoint;
-                      auto sep = Point(seg.x / countx, seg.y / countx);
+                      auto count = countx == 0 ? county : countx;
 
-                      r_com = views::closed_iota(0, countx) |
+                      auto seg = endPoint - startPoint;
+                      auto sep = Point(seg.x / count, seg.y / count);
+
+                      r_com = views::closed_iota(0, count) |
                               views::transform(
                                 [sep, startPoint](auto a)
                                 {
