@@ -29,78 +29,62 @@ struct Solve
 
   Solve(const string & inStr) { data = Init(inStr); };
 
+  auto CalcCost(int aTarget)
+  {
+    return accumulate(data | views::transform(
+                               [aTarget](auto el)
+                               {
+                                 auto val = abs(el - aTarget);
+                                 return val * (val + 1) / 2;
+                               }),
+                      0);
+  }
+
   auto Calc()
   {
     data = data | move | actions::sort;
 
-    auto max       = max_element(data);
-    auto min       = min_element(data);
-    auto complData = data |
-                     views::transform(
-                       [&](auto i)
-                       {
-                         return *max - i;
-                       }) |
-                     to<vector>;
+    auto partialSum     = data | views::partial_sum;
+    auto partialSumBack = actions::reverse(data | views::reverse | views::partial_sum | to<vector>);
 
-    auto partialSum  = data | views::partial_sum | to<vector>;
-    auto partialSum2 = actions::reverse(data | views::reverse | views::partial_sum | to<vector>);
-    auto complPartialSum =
-      actions::reverse(complData | views::reverse | views::partial_sum | to<vector>);
+    auto rgn = views::zip(data, views::zip(partialSum, partialSumBack));
 
-    auto rgn = views::zip(data, views::zip(partialSum, partialSum2)) | to<vector>;
+    auto val = rgn | views::enumerate |
+               views::transform(
+                 [len = data.size()](auto a)
+                 {
+                   auto [pos, elem] = a;
 
-    int minVal = 1000000000;
-    int level  = -1;
-    for (auto [pos, elem] : rgn | views::enumerate)
-    {
-      auto [val, areas]          = elem;
-      auto [leftArea, rightArea] = areas;
+                   auto [val, areas]          = elem;
+                   auto [leftArea, rightArea] = areas;
 
-      auto leftRectangle = val * (pos + 1);
-      auto leftGap       = leftRectangle - leftArea;
+                   auto leftRectangle = val * (pos + 1);
+                   auto leftGap       = leftRectangle - leftArea;
 
-      auto rightTargetRectangle = (data.size() - pos) * val;
+                   auto rightTargetRectangle = (len - pos) * val;
 
-      auto cost = leftGap + rightArea - rightTargetRectangle;
+                   auto cost = leftGap + rightArea - rightTargetRectangle;
+                   return cost;
+                 });
 
-      if (cost < minVal)
-      {
-        minVal = cost;
-        level  = val;
-      }
-    }
-
-    return std::make_pair(minVal, level);
+    auto min = min_element(val);
+    return std::make_pair(*min, 0);
   }
 
-  auto CalcCost(int aTarget)
-  {
-    auto cost = accumulate(data | views::transform(
-                                    [&](auto el)
-                                    {
-                                      auto val = abs(el - aTarget);
-                                      return val * (val + 1) / 2;
-                                    }),
-                           0);
-
-    return cost;
-  }
-
-  string Do()
+  auto Part1()
   {
     auto midleIt = data.begin() + data.size() / 2;
     std::nth_element(data.begin(), midleIt, data.end());
 
-    auto cost = accumulate(data, 0,
-                           [&](auto val, auto el)
-                           {
-                             return val + abs(el - *midleIt);
-                           });
-    // Calc().first
-
-    return to_string(cost);
+    return accumulate(data | views::transform(
+                               [midleIt](auto el)
+                               {
+                                 return abs(el - *midleIt);
+                               }),
+                      0);
   }
+
+  string Do() { return to_string(Calc().first); }
 
   string Do2()
   {
