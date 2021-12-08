@@ -2,10 +2,10 @@
 #include "stdafx.h"
 #include "Utils.h"
 
-//#define THISDAY "?"
+#define THISDAY "8"
 
-//#define FIRST_STAR  ""
-//#define SECOND_STAR ""
+#define FIRST_STAR  "449"
+#define SECOND_STAR "968175"
 
 #ifdef THISDAY
 #define TODAY DAY THISDAY "/"
@@ -24,14 +24,24 @@ auto Init(const string & input)
          views::transform(
            [](auto line)
            {
-             auto x = line | views::tokenize(regex("\\|"), -1) |
-                      views::transform(to_string_view()) | to<vector>;
+             auto sets = line | views::tokenize(regex("\\|"), -1) |
+                         views::transform(to_string_view()) |
+                         views::transform(
+                           [](auto section)
+                           {
+                             return section | views::tokenize(regex("\\w+")) |
+                                    views::transform(
+                                      [](auto token)
+                                      {
+                                        string s = token.str();
+                                        sort(s);
+                                        return s;
+                                      }) |
+                                    to<vector>;
+                           }) |
+                         to<vector>;
 
-             auto a = x[0] | views::tokenize(regex("\\w+")) | views::transform(to_string_view()) |
-                      to<vector>;
-             auto b = x[1] | views::tokenize(regex("\\w+")) | views::transform(to_string_view()) |
-                      to<vector>;
-             return std::make_pair(a, b);
+             return std::make_pair(sets.front(), sets.back());
            }) |
          to<vector>;
 }
@@ -78,10 +88,23 @@ struct Solve
 
     auto req = digReq | views::values | to<set>;
 
-    int sum = 0;
-    for (auto a0 : data)
+    auto filter = [&](auto a0)
     {
       auto [a, b] = a0;
+
+      // auto digStr = a |
+      //               views::filter(
+      //                 [&](auto s)
+      //                 {
+      //                   return contains(req, s.length());
+      //                 }) |
+      //               views::transform(
+      //                 [&](auto s)
+      //                 {
+      //                   return std::make_pair(revDigReq[s.length()], s);
+      //                 }) |
+      //               to<map>;
+
       map<int, string> digStr;
       for (auto s : a)
       {
@@ -91,12 +114,8 @@ struct Solve
         }
       }
 
-      // decode between 1 and 4
-      auto one   = digStr[1] | to<set>;
-      auto four  = digStr[4] | to<set>;
-      auto seven = digStr[7] | to<set>;
-      auto eight = digStr[8] | to<set>;
-      auto top   = views::set_difference(seven, one) | to<vector>;
+      auto one  = digStr[1] | to<set>;
+      auto four = digStr[4] | to<set>;
 
       auto rgn6 = a |
                   views::filter(
@@ -114,17 +133,17 @@ struct Solve
                     }) |
                   to<vector>;
 
-      for (auto s : rgn6)
-      {
-        auto asset = s | views::all | to<set>;
-        auto diff  = views::set_difference(one, asset) | to<vector>;
-        if (diff.size() != 0)
-          digStr[6] = s;
-      }
+      digStr[6] = *find_if(rgn6,
+                           [&](auto s)
+                           {
+                             auto asset = s | views::all | to<set>;
+                             auto diff  = views::set_difference(one, asset) | to<vector>;
+                             return diff.size() != 0;
+                           });
 
       for (auto s : rgn6)
       {
-        if (s == digStr[6])
+        if (contains(digStr | views::values, s))
           continue;
 
         auto asset = s | views::all | to<set>;
@@ -143,13 +162,11 @@ struct Solve
           digStr[3] = s;
       }
 
-      auto prev = digStr | views::values | to<set>;
-
       auto six = digStr[6] | to<set>;
 
       for (auto s : rgn5)
       {
-        if (contains(prev, s))
+        if (contains(digStr | views::values, s))
           continue;
 
         auto asset = s | views::all | to<set>;
@@ -164,34 +181,20 @@ struct Solve
                        views::transform(
                          [](auto e)
                          {
-                           sort(e.second);
                            return std::make_pair(e.second, e.first);
                          }) |
                        to<map<string, int>>;
 
-      int nr = 0;
-      for (auto s : b)
-      {
-        string s2(s);
-        sort(s2);
-        nr = nr * 10 + revDigStr[s2];
-      }
-      sum += nr;
-    }
+      return accumulate(b, 0,
+                        [&revDigStr](auto nr, auto s)
+                        {
+                          return nr * 10 + revDigStr[s];
+                        });
+    };
+
+    int sum = accumulate(data | views::transform(filter), 0);
 
     return to_string(sum);
-
-    auto rgn = data | views::values | views::join |
-               views::filter(
-                 [req](auto i)
-                 {
-                   return contains(req, i.length());
-                 }) |
-               to<vector>;
-
-    auto x = distance(rgn);
-
-    return to_string(x);
   }
 };
 }  // namespace
