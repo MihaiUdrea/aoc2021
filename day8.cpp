@@ -114,9 +114,6 @@ struct Solve
         }
       }
 
-      auto one  = digStr[1] | to<set>;
-      auto four = digStr[4] | to<set>;
-
       auto rgn6 = a |
                   views::filter(
                     [](auto i)
@@ -136,9 +133,7 @@ struct Solve
       digStr[6] = *find_if(rgn6,
                            [&](auto s)
                            {
-                             auto asset = s | views::all | to<set>;
-                             auto diff  = views::set_difference(one, asset) | to<vector>;
-                             return diff.size() != 0;
+                             return distance(views::set_difference(digStr[1], s)) != 0;
                            });
 
       for (auto s : rgn6)
@@ -146,9 +141,7 @@ struct Solve
         if (contains(digStr | views::values, s))
           continue;
 
-        auto asset = s | views::all | to<set>;
-        auto diff  = views::set_difference(four, asset) | to<vector>;
-        if (diff.size() != 0)
+        if (distance(views::set_difference(digStr[4], s)) != 0)
           digStr[0] = s;
         else
           digStr[9] = s;
@@ -156,24 +149,18 @@ struct Solve
 
       for (auto s : rgn5)
       {
-        auto asset = s | views::all | to<set>;
-        auto diff  = views::set_difference(one, asset) | to<vector>;
-        if (diff.size() == 0)
+        if (distance(views::set_difference(digStr[1], s)) == 0)
           digStr[3] = s;
       }
-
-      auto six = digStr[6] | to<set>;
 
       for (auto s : rgn5)
       {
         if (contains(digStr | views::values, s))
           continue;
 
-        auto asset = s | views::all | to<set>;
-        auto diff  = views::set_difference(six, asset) | to<vector>;
-        if (diff.size() == 1)
+        if (auto dist = distance(views::set_difference(digStr[6], s)); dist == 1)
           digStr[5] = s;
-        else if (diff.size() == 2)
+        else if (dist == 2)
           digStr[2] = s;
       }
 
