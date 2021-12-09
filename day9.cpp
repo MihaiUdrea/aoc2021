@@ -65,11 +65,11 @@ struct Solve
            views::filter(
              [&](auto pt)
              {
-               return all_of(directions | views::transform(bind_back(std::plus(), pt.first)),
-                             [&](auto newPt)
-                             {
-                               return !myMap.contains(newPt) || myMap[newPt] > myMap[pt.first];
-                             });
+               return none_of(directions | views::transform(bind_back(std::plus(), pt.first)),
+                              [&](auto newPt)
+                              {
+                                return myMap.contains(newPt) && myMap[newPt] <= myMap[pt.first];
+                              });
              }) |
            to<vector>;
   }
