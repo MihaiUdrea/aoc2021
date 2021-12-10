@@ -1,6 +1,8 @@
 // Aoc - 2021 Day ?: ??????? ---
 #include "stdafx.h"
 #include "Utils.h"
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/connected_components.hpp>
 
 #define THISDAY "9"
 
@@ -14,6 +16,8 @@
 #endif  // THISDAY
 
 using namespace ranges;
+
+using namespace boost;
 
 namespace
 {
@@ -52,7 +56,8 @@ struct Solve
     {
       for (auto [col, elem] : l | views::enumerate)
       {
-        myMap[Point(line, col)] = elem - '0';
+        if (elem < '9')
+          myMap[Point(line, col)] = elem - '0';
       }
     }
   };
@@ -104,28 +109,64 @@ struct Solve
 
   string Do2()
   {
-    auto mins = GetMins();
+    if (1)
+    {
+      adjacency_list<vecS, vecS, undirectedS> g;
 
-    auto rgn = mins |
-               views::transform(
-                 [&](auto p)
-                 {
-                   auto start = p.first;
+      for (auto [pos, pt] : myMap | views::enumerate)
+      {
+        for (auto newLowePt : directions | views::transform(bind_back(std::plus(), pt.first)))
+        {
+          if (myMap.contains(newLowePt) && myMap[newLowePt] < myMap[pt.first])
+            add_edge(pos, ranges::distance(myMap.begin(), myMap.find(newLowePt)), g);
+        }
+      }
 
-                   set<Point> done;
+      std::vector<int> co(num_vertices(g));
+      int              num = connected_components(g, &co[0]);
 
-                   for (auto list = Search(set<Point>{ start }, done); !list.empty();
-                        list      = Search(list, done))
-                     ;
+      sort(co);
+      auto rgn = co |
+                 views::chunk_by(
+                   [](auto x, auto y)
+                   {
+                     return x == y;
+                   }) |
+                 views::transform(
+                   [](auto && r)
+                   {
+                     return ranges::size(r);
+                   }) |
+                 to<vector>;
+      sort(rgn);
+      auto val = accumulate(rgn | views::reverse | views::take(3), (ULONGLONG)1, std::multiplies());
+      return to_string(val);
+    }
+    else
+    {
+      auto mins = GetMins();
 
-                   return done.size();
-                 }) |
-               to<vector>;
+      auto rgn = mins |
+                 views::transform(
+                   [&](auto p)
+                   {
+                     auto start = p.first;
 
-    sort(rgn);
+                     set<Point> done;
 
-    auto val = accumulate(rgn | views::reverse | views::take(3), (ULONGLONG)1, std::multiplies());
-    return to_string(val);
+                     for (auto list = Search(set<Point>{ start }, done); !list.empty();
+                          list      = Search(list, done))
+                       ;
+
+                     return done.size();
+                   }) |
+                 to<vector>;
+
+      sort(rgn);
+
+      auto val = accumulate(rgn | views::reverse | views::take(3), (ULONGLONG)1, std::multiplies());
+      return to_string(val);
+    }
   }
 };
 }  // namespace
