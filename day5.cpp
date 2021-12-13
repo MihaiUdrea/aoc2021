@@ -1,4 +1,4 @@
-// Aoc - 2021 Day 5: ??????? ---
+// Aoc - 2021 Day ?: ??????? ---
 #include "stdafx.h"
 #include "Utils.h"
 
@@ -20,17 +20,15 @@ namespace
 
 auto Init(const string & input)
 {
-  auto b = input | views::tokenize(regex("\n"), -1) | views::transform(to_string_view()) |
-           views::transform(
-             [](auto line)
-             {
-               auto x = line | views::tokenize(regex("\\d+")) |
-                        views::transform(sub_match_to_int()) | to<vector>;
-               return std::make_pair(Point(x[0], x[1]), Point(x[2], x[3]));
-             }) |
-           to<vector>;
-
-  return b;
+  return input | views::tokenize(regex("\n"), -1) | views::transform(to_string_view()) |
+         views::transform(
+           [](auto line)
+           {
+             auto x = line | views::tokenize(regex("\\d+")) | views::transform(sub_match_to_int()) |
+                      to<vector>;
+             return std::make_pair(Point(x[0], x[1]), Point(x[2], x[3]));
+           }) |
+         to<vector>;
 }
 struct Solve
 {
@@ -38,41 +36,41 @@ struct Solve
 
   Solve(const string & inStr) { data = Init(inStr); };
 
-  string Do()
+  string Do(bool aDiagonal = false)
   {
-    auto sets = data |
-                views::transform(
-                  [](auto segment)
-                  {
-                    vector<Point> r_com;
-                    auto          minmaxX = std::minmax(segment.first.x, segment.second.x);
-                    auto          minmaxY = std::minmax(segment.first.y, segment.second.y);
+    auto sets =
+      data |
+      views::transform(
+        [aDiagonal](auto segment)
+        {
+          vector<Point> r_com;
+          auto          minmaxX = std::minmax(segment.first.x, segment.second.x);
+          auto          minmaxY = std::minmax(segment.first.y, segment.second.y);
 
-                    if (minmaxY.first == minmaxY.second)
-                    {
-                      r_com = views::zip(views::closed_iota(minmaxX.first, minmaxX.second),
-                                         views::repeat(minmaxY.first)) |
-                              views::transform(
-                                [](auto a)
-                                {
-                                  return Point(get<0>(a), get<1>(a));
-                                }) |
-                              to<vector>;
-                    }
-                    else if (minmaxX.first == minmaxX.second)
-                    {
-                      r_com = views::zip(views::repeat(minmaxX.first),
-                                         views::closed_iota(minmaxY.first, minmaxY.second)) |
-                              views::transform(
-                                [](auto a)
-                                {
-                                  return Point(get<0>(a), get<1>(a));
-                                }) |
-                              to<vector>;
-                    }
-                    return r_com;
-                  }) |
-                to<vector>;
+          vector<Point> aa;
+          if (aDiagonal || (minmaxY.first == minmaxY.second || minmaxX.first == minmaxX.second))
+          {
+            auto cnt = minmaxX.second - minmaxX.first + 1;
+            if (cnt == 1)
+              cnt = minmaxY.second - minmaxY.first + 1;
+
+            auto rngX = views::linear_distribute(minmaxX.first, minmaxX.second, cnt);
+            auto rngY = views::linear_distribute(minmaxY.first, minmaxY.second, cnt) | to<vector>;
+
+            Point startPoint(minmaxX.first, minmaxY.first);
+            if (startPoint != segment.first && startPoint != segment.second)
+              actions::reverse(rngY);
+            aa = views::zip(rngX, rngY) |
+                 views::transform(
+                   [](auto a)
+                   {
+                     return Point(get<0>(a), get<1>(a));
+                   }) |
+                 to<vector>;
+          }
+          return aa;
+        }) |
+      to<vector>;
 
     map<Point, int> mem;
     for (auto pt : sets | views::join)
@@ -89,54 +87,9 @@ struct Solve
     return to_string(res);
   }
 
-  string Do2()
-  {
-    auto sets = data |
-                views::transform(
-                  [](auto segment)
-                  {
-                    vector<Point> r_com;
-                    auto          minmaxX = std::minmax(segment.first.x, segment.second.x);
-                    auto          minmaxY = std::minmax(segment.first.y, segment.second.y);
-
-                    {
-                      auto  countx     = minmaxX.second - minmaxX.first;
-                      auto  county     = minmaxY.second - minmaxY.first;
-                      Point startPoint = segment.first;
-                      Point endPoint   = segment.second;
-
-                      auto count = countx == 0 ? county : countx;
-
-                      auto seg = endPoint - startPoint;
-                      auto sep = Point(seg.x / count, seg.y / count);
-
-                      r_com = views::closed_iota(0, count) |
-                              views::transform(
-                                [sep, startPoint](auto a)
-                                {
-                                  return startPoint + Point(sep.x * a, sep.y * a);
-                                }) |
-                              to<vector>;
-                    }
-                    return r_com;
-                  }) |
-                to<vector>;
-
-    map<Point, int> mem;
-    for (auto pt : sets | views::join)
-    {
-      mem[pt]++;
-    }
-
-    auto res = count_if(mem | views::values,
-                        [](auto e)
-                        {
-                          return e > 1;
-                        });
-
-    return to_string(res);
-  }
+  string Do2() { return Do(true); }
 };
+
 }  // namespace
 
 #include "catch.hpp"
