@@ -47,7 +47,7 @@ struct Solve
   {
     data;
     for (auto step : views::ints | views::take(depth))
-    { 
+    {
       auto rgn        = views::zip(str, str | views::drop(1));
       auto insertList = rgn | views::enumerate |
                         views::transform(
@@ -110,8 +110,84 @@ struct Solve
     }
   }
 
+  string Do3(int targetDepth = 10)
+  {
+    using PairAndFreq = pair<pair<char, char>, ULONGLONG>;
+    auto pairs        = views::zip(data.first, data.first | views::drop(1)) |
+                 views::transform(
+                   [](auto a)
+                   {
+                     return std::make_pair(a, 1ull);
+                   }) |
+                 to<vector<PairAndFreq>>;
+    // to<vector>;
+
+    auto getPairFreqs = [](auto & pairs)
+    {
+      sort(pairs,
+           [](auto a, auto b)
+           {
+             return a.first.first < b.first.first ||
+                    (a.first.first == b.first.first && a.first.second < b.first.second);
+           });
+
+      return pairs |
+             views::chunk_by(
+               [](auto a, auto b)
+               {
+                 return a.first == b.first;
+               }) |
+             views::transform(
+               [](auto a)
+               {
+                 auto sum = accumulate(a, 0ull, std::plus(),
+                                       [](auto a)
+                                       {
+                                         return a.second;
+                                       });
+                 return std::make_pair(at(a, 0).first, sum);
+               }) |
+             to<vector>;
+    };
+
+    auto chungrg = getPairFreqs(pairs);
+
+    map<char, ULONGLONG> total;
+    for (auto ch : data.first)
+      total[ch]++;
+
+    for (auto i : views::ints | views::take(targetDepth))
+    {
+      auto x = chungrg |
+               views::transform(
+                 [&](auto p)
+                 {
+                   auto x = data.second[p.first];
+                   total[x] += p.second;
+
+                   PairAndFreq p1  = p;
+                   p1.first.second = x;
+                   PairAndFreq p2  = p;
+                   p2.first.first  = x;
+
+                   return vector{ p1, p2 };
+                 }) |
+               to<vector>;
+      auto p = x | views::join | to<vector>;
+
+      chungrg = getPairFreqs(p);
+    }
+
+    auto minmax = minmax_element(total | views::values);
+
+    return to_string(*minmax.max - *minmax.min);
+  }
+
   string Do(int targetDepth = 10)
   {
+    auto s = Do3(targetDepth);
+    return s;
+
     map<char, ULONGLONG> accMap;
     char                 prevChar = 0;
 
@@ -162,6 +238,31 @@ CC -> N
 CN -> C
 )")
             .Do2() == "2188189693529");
+}
+
+TEST_CASE(TODAY "Sample 1p1", "[x.]")
+{
+  REQUIRE(Solve(1 + R"(
+NNCB
+
+CH -> B
+HH -> N
+CB -> H
+NH -> C
+HB -> C
+HC -> B
+HN -> C
+NN -> C
+BH -> H
+NC -> B
+NB -> B
+BN -> B
+BB -> N
+BC -> B
+CC -> N
+CN -> C
+)")
+            .Do() == "1588");
 }
 
 TEST_CASE(TODAY "Part Two", "[x.]")
